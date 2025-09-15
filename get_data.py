@@ -79,7 +79,7 @@ def fetch_and_save_data():
                 time_series = data[time_series_key]
                 
                 for timestamp_str, values in time_series.items():
-                    timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
+                    timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d')
                     open_price = float(values[open_key])
                     close_price = float(values[close_key])
                     volume = float(values[volume_key]) if asset_type != 'forex' else 0
