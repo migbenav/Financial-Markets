@@ -30,7 +30,7 @@ def get_api_url(asset_type, symbol):
     base_url = "https://www.alphavantage.co/query?"
     
     if asset_type == 'stocks':
-        return f'{base_url}function=TIME_SERIES_DAILY_ADJUSTED&symbol={symbol}&outputsize=full&apikey={ALPHA_VANTAGE_API_KEY}'
+        return f'{base_url}function=TIME_SERIES_DAILY&symbol={symbol}&outputsize=full&apikey={ALPHA_VANTAGE_API_KEY}'
     elif asset_type == 'crypto':
         return f'{base_url}function=DIGITAL_CURRENCY_DAILY&symbol={symbol}&market=USD&apikey={ALPHA_VANTAGE_API_KEY}'
     elif asset_type == 'forex':
