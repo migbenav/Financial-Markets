@@ -65,7 +65,7 @@ def fetch_and_save_data():
                 
                 if asset_type == 'stocks':
                     time_series_key = 'Time Series (Daily)'
-                    open_key, close_key, volume_key = '1. open', '4. close', '6. volume'
+                    open_key, close_key, volume_key = '1. open', '4. close', '5. volume'
                 elif asset_type == 'crypto':
                     time_series_key = 'Time Series (Digital Currency Daily)'
                     open_key, close_key, volume_key = '1. open', '4. close', '5. volume'
