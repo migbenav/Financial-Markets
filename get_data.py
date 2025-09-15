@@ -46,8 +46,6 @@ def fetch_and_save_data():
         conn = psycopg2.connect(SUPABASE_DB_URL)
         cur = conn.cursor()
 
-        # --- Aquí se añade la pausa de 1 segundo ---
-        time.sleep(1)
 
         for asset_type, symbols in SYMBOLS.items():
             for symbol in symbols:
@@ -56,6 +54,9 @@ def fetch_and_save_data():
                 url = get_api_url(asset_type, symbol)
                 response = requests.get(url)
                 
+                # --- Aquí se añade la pausa de 1 segundo ---
+                time.sleep(1)
+
                 if response.status_code != 200:
                     print(f"Error for {symbol}. Status Code: {response.status_code}")
                     continue
@@ -82,7 +83,13 @@ def fetch_and_save_data():
                     timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d')
                     open_price = float(values[open_key])
                     close_price = float(values[close_key])
-                    volume = float(values[volume_key]) if asset_type != 'forex' else 0
+
+                    # Define volume based on asset type
+                    if asset_type != 'forex':
+                        volume = float(values[volume_key])
+                    else:
+                        volume = 0
+
                     current_time = datetime.now()
 
                     cur.execute(
@@ -90,7 +97,7 @@ def fetch_and_save_data():
                         (timestamp, symbol, open_price, close_price, volume, current_time)
                     )
                 
-                print(f"Intraday data for {symbol} saved successfully!")
+                print(f"Daily data for {symbol} saved successfully!")
                 conn.commit()
 
     except Exception as e:
