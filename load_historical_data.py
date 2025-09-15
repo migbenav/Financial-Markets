@@ -90,11 +90,12 @@ def fetch_and_save_historical_data():
                     open_price = float(values[open_key])
                     close_price = float(values[close_key])
                     volume = float(values[volume_key]) if asset_type != 'forex' else 0 # Forex doesn't have a volume key
+                    current_time = datetime.now()
 
                     # Insert the data into the 'stock_prices' table
                     cur.execute(
-                        "INSERT INTO stock_prices (timestamp, symbol, open_price, close_price, volume) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (timestamp, symbol) DO NOTHING",
-                        (current_date, symbol, open_price, close_price, volume)
+                        "INSERT INTO stock_prices (timestamp, symbol, open_price, close_price, volume, load_timestamp) VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT (timestamp, symbol) DO NOTHING",
+                        (current_date, symbol, open_price, close_price, volume, current_time)
                     )
                 
                 print(f"Historical data for {symbol} saved successfully!")
