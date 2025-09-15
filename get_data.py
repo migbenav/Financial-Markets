@@ -54,7 +54,7 @@ def fetch_and_save_data():
                 url = get_api_url(asset_type, symbol)
                 response = requests.get(url)
                 
-                # --- Aquí se añade la pausa de 1 segundo ---
+                # --- Adds a 1-second pause here to avoid API rate limits ---
                 time.sleep(1)
 
                 if response.status_code != 200:

@@ -4,7 +4,7 @@ import psycopg2
 from datetime import datetime
 from dotenv import load_dotenv
 
-# Carga las variables de entorno desde el archivo .env
+# Load environment variables from .env file
 load_dotenv()
 
 # --- Configuration ---
@@ -56,7 +56,7 @@ def fetch_and_save_historical_data():
                 url = get_api_url(asset_type, symbol)
                 response = requests.get(url)
 
-                # Verifica si la solicitud fue exitosa (código 200)
+                # Checks if the request was successful (status code 200)
                 if response.status_code != 200:
                     print(f"Error en la solicitud para {symbol}. Código de estado: {response.status_code}")
                     continue
@@ -70,7 +70,6 @@ def fetch_and_save_historical_data():
                     open_key, close_key, volume_key = '1. open', '4. close', '5. volume'
                 elif asset_type == 'crypto':
                     time_series_key = 'Time Series (Digital Currency Daily)'
-                    # ¡Las claves son '1. open', '4. close' y '5. volume'!
                     open_key, close_key, volume_key = '1. open', '4. close', '5. volume'
                 elif asset_type == 'forex':
                     time_series_key = 'Time Series FX (Daily)'

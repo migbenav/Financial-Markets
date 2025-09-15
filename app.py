@@ -3,13 +3,13 @@ import pandas as pd
 import psycopg2
 import os
 
-# --- Configuración de la conexión a Supabase ---
+# --- Database connection configuration ---
 SUPABASE_DB_URL = os.environ.get('SUPABASE_DB_URL')
 
-# ... (El resto del código para get_data_from_supabase() y la conexión es el mismo)
-
 def get_data_from_supabase():
-    # ... (código existente)
+    """
+    Connects to the database and retrieves data from the 'stock_prices' table.
+    """
     conn = None
     try:
         conn = psycopg2.connect(SUPABASE_DB_URL)
@@ -17,53 +17,45 @@ def get_data_from_supabase():
         df = pd.read_sql(query, conn)
         return df
     except Exception as e:
-        st.error(f"Error al conectar a la base de datos: {e}")
+        st.error(f"Error connecting to the database: {e}")
         return pd.DataFrame()
     finally:
         if conn:
             conn.close()
 
-
-# --- Título y descripción del dashboard ---
+# --- Dashboard title and description ---
 st.title("Financial Markets Dashboard")
-st.write("Datos de mercados financieros actualizados diariamente.")
+st.write("Financial market data updated daily.")
 
-
-# --- Obtener datos ---
+# --- Get data and perform analysis ---
 data = get_data_from_supabase()
 
 if not data.empty:
-    # --- Agregar un filtro de símbolos ---
     symbols = data['symbol'].unique()
-    selected_symbol = st.selectbox("Selecciona un Símbolo", symbols)
+    selected_symbol = st.selectbox("Select a Symbol", symbols)
     
-    # Filtrar datos
     filtered_data = data[data['symbol'] == selected_symbol].copy()
     filtered_data['timestamp'] = pd.to_datetime(filtered_data['timestamp'])
     filtered_data.set_index('timestamp', inplace=True)
     
-    # --- CÁLCULO DE KPIs ---
-    
-    # 1. Rendimiento Diario (Daily Returns)
+    # Calculate key performance indicators (KPIs)
     filtered_data['daily_returns'] = filtered_data['close_price'].pct_change()
-    
-    # 2. Volatilidad Anualizada (Annualized Volatility)
     annualized_volatility = filtered_data['daily_returns'].std() * (252**0.5)
     
-    # --- MOSTRAR KPIs ---
-    st.subheader(f"KPIs para {selected_symbol}")
+    # --- Display KPIs ---
+    st.subheader(f"KPIs for {selected_symbol}")
     col1, col2 = st.columns(2)
     with col1:
-        st.metric(label="Rendimiento del último día", value=f"{filtered_data['daily_returns'].iloc[-1]:.2%}")
+        st.metric(label="Last Day's Return", value=f"{filtered_data['daily_returns'].iloc[-1]:.2%}")
     with col2:
-        st.metric(label="Volatilidad Anualizada", value=f"{annualized_volatility:.2f}")
+        st.metric(label="Annualized Volatility", value=f"{annualized_volatility:.2f}")
 
-    # --- MOSTRAR GRÁFICOS ---
-    st.subheader("Gráfico de Precios de Cierre")
+    # --- Display charts ---
+    st.subheader("Closing Price Chart")
     st.line_chart(filtered_data['close_price'])
     
-    st.subheader("Gráfico de Rendimientos Diarios")
+    st.subheader("Daily Returns Chart")
     st.line_chart(filtered_data['daily_returns'])
     
 else:
-    st.warning("No hay datos para mostrar. Revisa tu conexión a la base de datos.")
+    st.warning("No data to display. Check your database connection.")
