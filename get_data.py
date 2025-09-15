@@ -13,7 +13,8 @@ SUPABASE_DB_URL = os.environ.get('SUPABASE_DB_URL')
 
 # List of symbols to fetch intraday data for
 SYMBOLS = {
-    'stocks': ['MSFT', 'GOOGL', 'AMZN', 'SPY'],
+    #'stocks': ['MSFT', 'GOOGL', 'AMZN', 'SPY'],
+    'stocks': ['SPY'],
     'crypto': ['BTC', 'ETH'],
     'forex': ['EUR', 'JPY', 'GBP']
 }
@@ -26,11 +27,11 @@ def get_api_url(asset_type, symbol):
     base_url = "https://www.alphavantage.co/query?"
     
     if asset_type == 'stocks':
-        return f'{base_url}function=TIME_SERIES_INTRADAY&symbol={symbol}&interval=5min&apikey={ALPHA_VANTAGE_API_KEY}'
+        return f'{base_url}function=TIME_SERIES_DAILY_ADJUSTED&symbol={symbol}&outputsize=compact&apikey={ALPHA_VANTAGE_API_KEY}'
     elif asset_type == 'crypto':
-        return f'{base_url}function=DIGITAL_CURRENCY_INTRADAY&symbol={symbol}&market=USD&apikey={ALPHA_VANTAGE_API_KEY}'
+        return f'{base_url}function=DIGITAL_CURRENCY_DAILY&symbol={symbol}&market=USD&apikey={ALPHA_VANTAGE_API_KEY}'
     elif asset_type == 'forex':
-        return f'{base_url}function=FX_INTRADAY&from_symbol={symbol}&to_symbol=USD&apikey={ALPHA_VANTAGE_API_KEY}'
+        return f'{base_url}function=FX_DAILY&from_symbol={symbol}&to_symbol=USD&apikey={ALPHA_VANTAGE_API_KEY}'
     else:
         raise ValueError("Invalid asset type provided.")
 
@@ -58,13 +59,13 @@ def fetch_and_save_data():
                 data = response.json()
                 
                 if asset_type == 'stocks':
-                    time_series_key = 'Time Series (5min)'
-                    open_key, close_key, volume_key = '1. open', '4. close', '5. volume'
+                    time_series_key = 'Time Series (Daily)'
+                    open_key, close_key, volume_key = '1. open', '4. close', '6. volume'
                 elif asset_type == 'crypto':
-                    time_series_key = 'Time Series (Digital Currency Intraday)'
-                    open_key, close_key, volume_key = '1a. open (USD)', '4a. close (USD)', '5. volume'
+                    time_series_key = 'Time Series (Digital Currency Daily)'
+                    open_key, close_key, volume_key = '1. open', '4. close', '5. volume'
                 elif asset_type == 'forex':
-                    time_series_key = 'Time Series FX (Intraday)'
+                    time_series_key = 'Time Series FX (Daily)'
                     open_key, close_key = '1. open', '4. close'
                     
                 if time_series_key not in data:

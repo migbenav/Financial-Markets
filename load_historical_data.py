@@ -14,6 +14,7 @@ SUPABASE_DB_URL = os.environ.get('SUPABASE_DB_URL')
 # List of symbols to fetch historical data for
 SYMBOLS = {
     #'stocks': ['MSFT', 'GOOGL', 'AMZN', 'SPY'],
+    'stocks': ['SPY'],
     'crypto': ['BTC', 'ETH'],  # Alpha Vantage uses 'BTC' instead of 'BTC-USD'
     'forex': ['EUR', 'JPY', 'GBP'] # For pairs, we use the base currency
 }
