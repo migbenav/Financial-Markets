@@ -3,6 +3,7 @@ import requests
 import psycopg2
 from datetime import datetime
 from dotenv import load_dotenv
+import time
 
 # Load environment variables from .env file
 load_dotenv()
@@ -11,7 +12,7 @@ load_dotenv()
 ALPHA_VANTAGE_API_KEY = os.environ.get('ALPHA_VANTAGE_API_KEY')
 SUPABASE_DB_URL = os.environ.get('SUPABASE_DB_URL')
 
-# List of symbols to fetch intraday data for
+# List of symbols to fetch data for
 SYMBOLS = {
     #'stocks': ['MSFT', 'GOOGL', 'AMZN', 'SPY'],
     'stocks': ['SPY'],
@@ -22,7 +23,7 @@ SYMBOLS = {
 # --- Helper Function to build API URL ---
 def get_api_url(asset_type, symbol):
     """
-    Constructs the correct Alpha Vantage API URL based on the asset type for intraday data.
+    Constructs the correct Alpha Vantage API URL based on the asset type for data.
     """
     base_url = "https://www.alphavantage.co/query?"
     
@@ -44,6 +45,9 @@ def fetch_and_save_data():
     try:
         conn = psycopg2.connect(SUPABASE_DB_URL)
         cur = conn.cursor()
+
+        # --- Aquí se añade la pausa de 1 segundo ---
+        time.sleep(1)
 
         for asset_type, symbols in SYMBOLS.items():
             for symbol in symbols:
