@@ -3,6 +3,7 @@ import pandas as pd
 import psycopg2
 import os
 import numpy as np
+import altair as alt
 
 # --- Database connection configuration ---
 SUPABASE_DB_URL = os.environ.get('SUPABASE_DB_URL')
@@ -90,7 +91,7 @@ if not data.empty:
         with col6:
             if len(filtered_data) > 252:
                 high_52_week = filtered_data['close_price'].rolling(window=252).max().iloc[-1]
-                st.metric(label="52-Week High", value=f"${high_52_week:.2f}")
+                st.metric(label="52-Week High", value=f"${high_52_week:,.2f}")
             else:
                 st.metric(label="52-Week High", value="N/A")
 
@@ -98,7 +99,7 @@ if not data.empty:
         with col7:
             if len(filtered_data) > 252:
                 low_52_week = filtered_data['close_price'].rolling(window=252).min().iloc[-1]
-                st.metric(label="52-Week Low", value=f"${low_52_week:.2f}")
+                st.metric(label="52-Week Low", value=f"${low_52_week:,.2f}")
             else:
                 st.metric(label="52-Week Low", value="N/A")
         with col8:
@@ -111,13 +112,23 @@ if not data.empty:
             if 'volume' in filtered_data.columns and not pd.isna(filtered_data['volume']).all():
                 avg_volume = filtered_data['volume'].rolling(window=20).mean().iloc[-1]
                 price_volume_ratio = filtered_data['close_price'].iloc[-1] / avg_volume
-                st.metric(label="Price/Volume Ratio", value=f"{price_volume_ratio:.2f}")
+                st.metric(label="Price/Volume Ratio", value=f"{price_volume_ratio:,.2f}")
             else:
                 st.metric(label="Price/Volume Ratio", value="N/A")
 
-        # Basic Price Chart
+        # Basic Price Chart with Zoom and Formatting
         st.subheader("Basic Price Chart")
-        st.line_chart(filtered_data['close_price'])
+        
+        chart = alt.Chart(filtered_data.reset_index()).mark_line().encode(
+            x=alt.X('timestamp', axis=alt.Axis(title='Date')),
+            y=alt.Y('close_price', axis=alt.Axis(title='Closing Price', format=',.2f')),
+            tooltip=[
+                alt.Tooltip('timestamp', title='Date'),
+                alt.Tooltip('close_price', title='Price', format=',.2f')
+            ]
+        ).interactive()
+        
+        st.altair_chart(chart, use_container_width=True)
 
     # --- Tab 2: Advanced Charts ---
     with tab2:
@@ -126,35 +137,35 @@ if not data.empty:
         # Resampling options
         resample_option = st.radio(
             "Select a timeframe:",
-            ("Daily", "Monthly", "Yearly"),
+            ("Daily", "Weekly", "Monthly"),
             horizontal=True
         )
 
         resampled_data = filtered_data.copy()
-        if resample_option == "Monthly":
-            resampled_data = filtered_data.resample('M').last()
-        elif resample_option == "Yearly":
-            resampled_data = filtered_data.resample('Y').last()
+        if resample_option == "Weekly":
+            resampled_data = filtered_data['close_price'].resample('W').last().to_frame()
+        elif resample_option == "Monthly":
+            resampled_data = filtered_data['close_price'].resample('M').last().to_frame()
         
-        # Chart type option
         chart_type = st.radio(
             "Select chart type:",
             ("Line", "Bar"),
             horizontal=True
         )
 
-        # Plotting the main chart
         st.subheader(f"Closing Prices - {resample_option}")
         if chart_type == "Line":
             st.line_chart(resampled_data['close_price'])
         else:
             st.bar_chart(resampled_data['close_price'])
 
-        # Moving Average overlay
         window_size = st.slider("Moving Average Window (days):", 10, 200, 50)
-        resampled_data['Moving Average'] = resampled_data['close_price'].rolling(window=window_size).mean()
+        # Se crea una copia del DataFrame para evitar un error de asignación
+        df_ma = resampled_data.copy()
+        df_ma['Moving Average'] = df_ma['close_price'].rolling(window=window_size).mean()
+
         st.subheader("Closing Price with Moving Average")
-        st.line_chart(resampled_data[['close_price', 'Moving Average']])
+        st.line_chart(df_ma[['close_price', 'Moving Average']])
     
     # --- Tab 3: Correlation Analysis ---
     with tab3:
@@ -163,34 +174,35 @@ if not data.empty:
         st.write("Select two symbols to analyze their correlation.")
         
         corr_symbols = symbols.tolist()
-        corr_symbols.remove(selected_symbol)
+        if selected_symbol in corr_symbols:
+            corr_symbols.remove(selected_symbol)
         
         col_corr1, col_corr2 = st.columns(2)
         with col_corr1:
             symbol1 = st.selectbox("Symbol 1", symbols)
         with col_corr2:
-            symbol2 = st.selectbox("Symbol 2", symbols, index=1)
+            symbol2 = st.selectbox("Symbol 2", corr_symbols)
         
         if symbol1 and symbol2 and symbol1 != symbol2:
             data_symbol1 = data[data['symbol'] == symbol1].set_index('timestamp')['close_price']
             data_symbol2 = data[data['symbol'] == symbol2].set_index('timestamp')['close_price']
             
-            # Align data by date
             combined_data = pd.concat([data_symbol1, data_symbol2], axis=1).dropna()
             combined_data.columns = [symbol1, symbol2]
             
-            # Calculate daily returns for correlation
             returns = combined_data.pct_change().dropna()
             
-            correlation = returns.corr().iloc[0, 1]
-            st.subheader(f"Correlation between {symbol1} and {symbol2}")
-            st.metric(label="Correlation Coefficient", value=f"{correlation:.2f}")
+            if len(returns) > 1:
+                correlation = returns.corr().iloc[0, 1]
+                st.subheader(f"Correlation between {symbol1} and {symbol2}")
+                st.metric(label="Correlation Coefficient", value=f"{correlation:.2f}")
 
-            # Plotting scatter plot
-            st.subheader("Daily Returns Scatter Plot")
-            st.scatter_chart(returns)
+                st.subheader("Daily Returns Scatter Plot")
+                st.scatter_chart(returns)
 
-            st.write("A correlation close to 1 means the assets move in the same direction. Close to -1 means they move in opposite directions. Close to 0 means no linear relationship.")
+                st.write("A correlation close to 1 means the assets move in the same direction. Close to -1 means they move in opposite directions. Close to 0 means no linear relationship.")
+            else:
+                st.warning("Not enough common historical data to calculate correlation.")
         else:
             st.warning("Please select two different symbols to calculate correlation.")
 
