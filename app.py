@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import psycopg2
 import os
+import numpy as np
 
 # --- Database connection configuration ---
 SUPABASE_DB_URL = os.environ.get('SUPABASE_DB_URL')
@@ -39,96 +40,159 @@ if not data.empty:
     filtered_data.set_index('timestamp', inplace=True)
     
     # Calculate key performance indicators (KPIs)
-    # This check prevents an IndexError if there's not enough data
     if len(filtered_data) > 1:
         filtered_data['daily_returns'] = filtered_data['close_price'].pct_change()
     else:
         filtered_data['daily_returns'] = 0
 
-    # --- DISPLAY KPIs ---
-    st.subheader(f"KPIs for {selected_symbol}")
-    
-    # First row of KPIs
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        # Last Day's Return
-        if len(filtered_data) > 1:
-            st.metric(label="Last Day's Return", value=f"{filtered_data['daily_returns'].iloc[-1]:.2%}")
-        else:
-            st.metric(label="Last Day's Return", value="N/A")
-    with col2:
-        # Annualized Volatility
-        if len(filtered_data) > 252:
-            annualized_volatility = filtered_data['daily_returns'].std() * (252**0.5)
-            st.metric(label="Annualized Volatility", value=f"{annualized_volatility:.2f}")
-        else:
-            st.metric(label="Annualized Volatility", value="N/A")
-    with col3:
-        # Month-over-Month Growth
-        if len(filtered_data) > 21:
-            monthly_growth = (filtered_data['close_price'].iloc[-1] - filtered_data['close_price'].iloc[-21]) / filtered_data['close_price'].iloc[-21]
-            st.metric(label="Monthly Growth", value=f"{monthly_growth:.2%}")
-        else:
-            st.metric(label="Monthly Growth", value="N/A")
+    # Create tabs
+    tab1, tab2, tab3 = st.tabs(["Overview", "Advanced Charts", "Correlations"])
 
-    # Second row of KPIs
-    col4, col5, col6 = st.columns(3)
-    with col4:
-        # Year-over-Year Growth
-        if len(filtered_data) > 252:
-            yearly_growth = (filtered_data['close_price'].iloc[-1] - filtered_data['close_price'].iloc[-252]) / filtered_data['close_price'].iloc[-252]
-            st.metric(label="Yearly Growth", value=f"{yearly_growth:.2%}")
-        else:
-            st.metric(label="Yearly Growth", value="N/A")
-    with col5:
-        # Average Annual Return
-        if len(filtered_data) > 252:
-            average_annual_return = filtered_data['daily_returns'].mean() * 252
-            st.metric(label="Avg Annual Return", value=f"{average_annual_return:.2%}")
-        else:
-            st.metric(label="Avg Annual Return", value="N/A")
-    with col6:
-        # 52-Week High
-        if len(filtered_data) > 252:
-            high_52_week = filtered_data['close_price'].rolling(window=252).max().iloc[-1]
-            st.metric(label="52-Week High", value=f"${high_52_week:.2f}")
-        else:
-            st.metric(label="52-Week High", value="N/A")
+    # --- Tab 1: Overview (KPIs and basic chart) ---
+    with tab1:
+        st.header("Overview")
+        
+        # Display KPIs
+        st.subheader("Key Performance Indicators (KPIs)")
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            if len(filtered_data) > 1:
+                st.metric(label="Last Day's Return", value=f"{filtered_data['daily_returns'].iloc[-1]:.2%}")
+            else:
+                st.metric(label="Last Day's Return", value="N/A")
+        with col2:
+            if len(filtered_data) > 252:
+                annualized_volatility = filtered_data['daily_returns'].std() * (252**0.5)
+                st.metric(label="Annualized Volatility", value=f"{annualized_volatility:.2f}")
+            else:
+                st.metric(label="Annualized Volatility", value="N/A")
+        with col3:
+            if len(filtered_data) > 21:
+                monthly_growth = (filtered_data['close_price'].iloc[-1] - filtered_data['close_price'].iloc[-21]) / filtered_data['close_price'].iloc[-21]
+                st.metric(label="Monthly Growth", value=f"{monthly_growth:.2%}")
+            else:
+                st.metric(label="Monthly Growth", value="N/A")
 
-    # Third row of KPIs
-    col7, col8, col9 = st.columns(3)
-    with col7:
-        # 52-Week Low
-        if len(filtered_data) > 252:
-            low_52_week = filtered_data['close_price'].rolling(window=252).min().iloc[-1]
-            st.metric(label="52-Week Low", value=f"${low_52_week:.2f}")
-        else:
-            st.metric(label="52-Week Low", value="N/A")
-    with col8:
-        # 30-Day Return
-        if len(filtered_data) > 30:
-            thirty_day_return = (filtered_data['close_price'].iloc[-1] - filtered_data['close_price'].iloc[-30]) / filtered_data['close_price'].iloc[-30]
-            st.metric(label="30-Day Return", value=f"{thirty_day_return:.2%}")
-        else:
-            st.metric(label="30-Day Return", value="N/A")
-    with col9:
-        # Price/Volume Ratio
-        if 'volume' in filtered_data.columns and not pd.isna(filtered_data['volume']).all():
-            avg_volume = filtered_data['volume'].rolling(window=20).mean().iloc[-1]
-            price_volume_ratio = filtered_data['close_price'].iloc[-1] / avg_volume
-            st.metric(label="Price/Volume Ratio", value=f"{price_volume_ratio:.2f}")
-        else:
-            st.metric(label="Price/Volume Ratio", value="N/A")
+        col4, col5, col6 = st.columns(3)
+        with col4:
+            if len(filtered_data) > 252:
+                yearly_growth = (filtered_data['close_price'].iloc[-1] - filtered_data['close_price'].iloc[-252]) / filtered_data['close_price'].iloc[-252]
+                st.metric(label="Yearly Growth", value=f"{yearly_growth:.2%}")
+            else:
+                st.metric(label="Yearly Growth", value="N/A")
+        with col5:
+            if len(filtered_data) > 252:
+                average_annual_return = filtered_data['daily_returns'].mean() * 252
+                st.metric(label="Avg Annual Return", value=f"{average_annual_return:.2%}")
+            else:
+                st.metric(label="Avg Annual Return", value="N/A")
+        with col6:
+            if len(filtered_data) > 252:
+                high_52_week = filtered_data['close_price'].rolling(window=252).max().iloc[-1]
+                st.metric(label="52-Week High", value=f"${high_52_week:.2f}")
+            else:
+                st.metric(label="52-Week High", value="N/A")
 
-    # --- DISPLAY CHARTS ---
-    st.subheader("Closing Price Chart")
-    st.line_chart(filtered_data['close_price'])
+        col7, col8, col9 = st.columns(3)
+        with col7:
+            if len(filtered_data) > 252:
+                low_52_week = filtered_data['close_price'].rolling(window=252).min().iloc[-1]
+                st.metric(label="52-Week Low", value=f"${low_52_week:.2f}")
+            else:
+                st.metric(label="52-Week Low", value="N/A")
+        with col8:
+            if len(filtered_data) > 30:
+                thirty_day_return = (filtered_data['close_price'].iloc[-1] - filtered_data['close_price'].iloc[-30]) / filtered_data['close_price'].iloc[-30]
+                st.metric(label="30-Day Return", value=f"{thirty_day_return:.2%}")
+            else:
+                st.metric(label="30-Day Return", value="N/A")
+        with col9:
+            if 'volume' in filtered_data.columns and not pd.isna(filtered_data['volume']).all():
+                avg_volume = filtered_data['volume'].rolling(window=20).mean().iloc[-1]
+                price_volume_ratio = filtered_data['close_price'].iloc[-1] / avg_volume
+                st.metric(label="Price/Volume Ratio", value=f"{price_volume_ratio:.2f}")
+            else:
+                st.metric(label="Price/Volume Ratio", value="N/A")
+
+        # Basic Price Chart
+        st.subheader("Basic Price Chart")
+        st.line_chart(filtered_data['close_price'])
+
+    # --- Tab 2: Advanced Charts ---
+    with tab2:
+        st.header("Advanced Historical Charts")
+
+        # Resampling options
+        resample_option = st.radio(
+            "Select a timeframe:",
+            ("Daily", "Monthly", "Yearly"),
+            horizontal=True
+        )
+
+        resampled_data = filtered_data.copy()
+        if resample_option == "Monthly":
+            resampled_data = filtered_data.resample('M').last()
+        elif resample_option == "Yearly":
+            resampled_data = filtered_data.resample('Y').last()
+        
+        # Chart type option
+        chart_type = st.radio(
+            "Select chart type:",
+            ("Line", "Bar"),
+            horizontal=True
+        )
+
+        # Plotting the main chart
+        st.subheader(f"Closing Prices - {resample_option}")
+        if chart_type == "Line":
+            st.line_chart(resampled_data['close_price'])
+        else:
+            st.bar_chart(resampled_data['close_price'])
+
+        # Moving Average overlay
+        window_size = st.slider("Moving Average Window (days):", 10, 200, 50)
+        resampled_data['Moving Average'] = resampled_data['close_price'].rolling(window=window_size).mean()
+        st.subheader("Closing Price with Moving Average")
+        st.line_chart(resampled_data[['close_price', 'Moving Average']])
     
-    st.subheader("Daily Returns Chart")
-    if len(filtered_data) > 1:
-        st.line_chart(filtered_data['daily_returns'])
-    else:
-        st.warning("Not enough data to display Daily Returns.")
-    
+    # --- Tab 3: Correlation Analysis ---
+    with tab3:
+        st.header("Correlation Analysis")
+
+        st.write("Select two symbols to analyze their correlation.")
+        
+        corr_symbols = symbols.tolist()
+        corr_symbols.remove(selected_symbol)
+        
+        col_corr1, col_corr2 = st.columns(2)
+        with col_corr1:
+            symbol1 = st.selectbox("Symbol 1", symbols)
+        with col_corr2:
+            symbol2 = st.selectbox("Symbol 2", symbols, index=1)
+        
+        if symbol1 and symbol2 and symbol1 != symbol2:
+            data_symbol1 = data[data['symbol'] == symbol1].set_index('timestamp')['close_price']
+            data_symbol2 = data[data['symbol'] == symbol2].set_index('timestamp')['close_price']
+            
+            # Align data by date
+            combined_data = pd.concat([data_symbol1, data_symbol2], axis=1).dropna()
+            combined_data.columns = [symbol1, symbol2]
+            
+            # Calculate daily returns for correlation
+            returns = combined_data.pct_change().dropna()
+            
+            correlation = returns.corr().iloc[0, 1]
+            st.subheader(f"Correlation between {symbol1} and {symbol2}")
+            st.metric(label="Correlation Coefficient", value=f"{correlation:.2f}")
+
+            # Plotting scatter plot
+            st.subheader("Daily Returns Scatter Plot")
+            st.scatter_chart(returns)
+
+            st.write("A correlation close to 1 means the assets move in the same direction. Close to -1 means they move in opposite directions. Close to 0 means no linear relationship.")
+        else:
+            st.warning("Please select two different symbols to calculate correlation.")
+
 else:
     st.warning("No data to display. Check your database connection.")
