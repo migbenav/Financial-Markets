@@ -8,12 +8,13 @@ SUPABASE_DB_URL = os.environ.get('SUPABASE_DB_URL')
 
 def get_data_from_supabase():
     """
-    Connects to the database and retrieves data from the 'stock_prices' table.
+    Connects to the database and retrieves all data from the 'stock_prices' table.
     """
     conn = None
     try:
         conn = psycopg2.connect(SUPABASE_DB_URL)
-        query = "SELECT timestamp, symbol, close_price FROM stock_prices ORDER BY timestamp ASC"
+        # We need all columns for the KPIs, so let's select all of them.
+        query = "SELECT * FROM stock_prices ORDER BY timestamp ASC"
         df = pd.read_sql(query, conn)
         return df
     except Exception as e:
@@ -40,9 +41,8 @@ if not data.empty:
     
     # Calculate key performance indicators (KPIs)
     filtered_data['daily_returns'] = filtered_data['close_price'].pct_change()
-    annualized_volatility = filtered_data['daily_returns'].std() * (252**0.5)
     
-    # --- Display KPIs ---
+    # --- DISPLAY KPIs ---
     st.subheader(f"KPIs for {selected_symbol}")
     
     # First row of KPIs
@@ -85,15 +85,16 @@ if not data.empty:
         thirty_day_return = (filtered_data['close_price'].iloc[-1] - filtered_data['close_price'].iloc[-30]) / filtered_data['close_price'].iloc[-30]
         st.metric(label="30-Day Return", value=f"{thirty_day_return:.2%}")
     with col9:
-        # Price/Volume Ratio
-        if 'volume' in filtered_data.columns and filtered_data['volume'].mean() > 0:
+        # Price/Volume Ratio - This needs a check because forex has no volume.
+        # It also requires the volume column to be fetched in the query.
+        if 'volume' in filtered_data.columns and not pd.isna(filtered_data['volume']).all():
             avg_volume = filtered_data['volume'].rolling(window=20).mean().iloc[-1]
             price_volume_ratio = filtered_data['close_price'].iloc[-1] / avg_volume
             st.metric(label="Price/Volume Ratio", value=f"{price_volume_ratio:.2f}")
         else:
             st.metric(label="Price/Volume Ratio", value="N/A")
 
-    # --- Display charts ---
+    # --- DISPLAY CHARTS ---
     st.subheader("Closing Price Chart")
     st.line_chart(filtered_data['close_price'])
     
@@ -101,4 +102,4 @@ if not data.empty:
     st.line_chart(filtered_data['daily_returns'])
     
 else:
-    st.warning("No data to display. Check your database connection.") 
+    st.warning("No data to display. Check your database connection.")
