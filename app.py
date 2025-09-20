@@ -109,10 +109,15 @@ if not data.empty:
             else:
                 st.metric(label="30-Day Return", value="N/A")
         with col9:
-            if 'volume' in filtered_data.columns and not pd.isna(filtered_data['volume']).all():
+            # Check if the 'volume' column exists and is not entirely null
+            if 'volume' in filtered_data.columns and not filtered_data['volume'].isnull().all():
+                # Ensure the average volume is not zero before calculating the ratio
                 avg_volume = filtered_data['volume'].rolling(window=20).mean().iloc[-1]
-                price_volume_ratio = filtered_data['close_price'].iloc[-1] / avg_volume
-                st.metric(label="Price/Volume Ratio", value=f"{price_volume_ratio:,.2f}")
+                if avg_volume is not None and avg_volume != 0:
+                    price_volume_ratio = filtered_data['close_price'].iloc[-1] / avg_volume
+                    st.metric(label="Price/Volume Ratio", value=f"{price_volume_ratio:,.2f}")
+                else:
+                    st.metric(label="Price/Volume Ratio", value="N/A")
             else:
                 st.metric(label="Price/Volume Ratio", value="N/A")
 
